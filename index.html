@@ -1,808 +1,587 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VPNcheck Co-worker</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VPNcheck — ops console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080b0a;
+    --panel:#0d1211;
+    --panel-2:#111815;
+    --line:#1d2823;
+    --line-2:#2a3833;
+    --text:#e2ebe6;
+    --text-2:#b9c8c1;
+    --muted:#77897f;
+    --accent:#5ce6a1;
+    --accent-dim:rgba(92,230,161,.12);
+    --warn:#e9b552;
+    --danger:#ff8080;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --sans:'IBM Plex Sans Thai',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;font-size:14px}
+  button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+  ::selection{background:var(--accent);color:#04120b}
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  .shell{display:grid;grid-template-rows:auto minmax(0,1fr);height:100dvh}
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: 'Bai Jamjuree', sans-serif;
-      background-color: #f4f7f6;
-      color: #333333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      padding: 40px 20px;
-    }
-    .container {
-      width: 100%;
-      max-width: 1320px;
-      background: #ffffff;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.06);
-    }
-    .header-title {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      font-size: 2rem;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 30px;
-      color: #1a1a1a;
-      letter-spacing: 1px;
-    }
-    .header-title .shield-icon {
-      width: 34px;
-      height: 34px;
-      flex-shrink: 0;
-      animation: shieldPulse 2.4s ease-in-out infinite;
-    }
-    @keyframes shieldPulse {
-      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(0,123,255,0.4)); }
-      50% { transform: scale(1.08); filter: drop-shadow(0 0 6px rgba(0,123,255,0.55)); }
-    }
+  /* ---------- top bar ---------- */
+  .bar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:0 18px;height:46px;
+    border-bottom:1px solid var(--line);background:var(--panel);
+    font:11.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  }
+  .bar-l{display:flex;align-items:center;gap:10px;min-width:0}
+  .bar-l b{color:var(--text);font-weight:600;letter-spacing:.12em}
+  .bar-l .slash{color:var(--line-2)}
+  .bar-r{display:flex;align-items:center;gap:14px;white-space:nowrap}
+  .link{display:inline-flex;align-items:center;gap:6px;color:var(--accent)}
+  .link i{width:6px;height:6px;background:currentColor;display:block;box-shadow:0 0 0 3px var(--accent-dim)}
+  #clock{color:var(--text-2)}
 
-    /* โซนค้นหา */
-    .search-container {
-      display: flex;
-      gap: 15px;
-      justify-content: center;
-      margin-bottom: 40px;
-      flex-wrap: wrap;
-    }
-    .input-wrapper {
-      flex: 1;
-      max-width: 500px;
-      min-width: 250px;
-    }
-    input[type="text"] {
-      width: 100%;
-      padding: 15px 20px;
-      background: #fafafa;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      color: #333;
-      font-family: 'Bai Jamjuree', sans-serif;
-      font-size: 1.1rem;
-      transition: all 0.3s;
-    }
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #007BFF;
-      background: #ffffff;
-      box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
-    }
+  /* ---------- workspace ---------- */
+  .workspace{display:grid;grid-template-columns:minmax(320px,384px) minmax(0,1fr);min-height:0}
 
-    /* ปุ่มสไตล์เรืองแสง (Light Mode) */
-    .btn-search {
-      position: relative;
-      width: 160px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      background: #ffffff;
-      color: #1a1a1a;
-      font-family: 'Bai Jamjuree', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      overflow: hidden;
-      z-index: 1;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    }
-    .btn-search svg { width: 18px; height: 18px; }
-    .btn-search::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: conic-gradient(transparent, transparent, transparent, #007BFF);
-      animation: rotate 2s linear infinite;
-      z-index: -2;
-    }
-    .btn-search::after {
-      content: '';
-      position: absolute;
-      inset: 2px;
-      background: #ffffff;
-      border-radius: 6px;
-      z-index: -1;
-      transition: background 0.3s;
-    }
-    .btn-search:hover::after {
-      background: #f8f9fa;
-    }
-    @keyframes rotate {
-      100% { transform: rotate(360deg); }
-    }
+  /* left pane */
+  .pane-list{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line);background:var(--panel)}
+  .search-wrap{padding:14px 14px 12px;border-bottom:1px solid var(--line)}
+  .search{display:flex;align-items:center;gap:8px;border:1px solid var(--line-2);background:var(--bg);padding:0 10px}
+  .search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+  .search svg{width:14px;height:14px;color:var(--muted);flex:0 0 auto}
+  .search input{
+    flex:1 1 auto;min-width:0;background:transparent;border:0;outline:0;
+    color:var(--text);font:13px var(--mono);padding:10px 0;letter-spacing:.01em;
+  }
+  .search input::placeholder{color:#5d6e66}
+  .search input::-webkit-search-cancel-button{display:none}
+  .search button{
+    flex:0 0 auto;font:10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);padding:5px 6px;border-left:1px solid var(--line);
+  }
+  .search button:hover{color:#fff}
+  .list-meta{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 14px;border-bottom:1px solid var(--line);
+    font:10.5px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  }
+  #statusBox{color:var(--text-2)}
+  #statusBox[data-tone="ok"]{color:var(--accent)}
+  #statusBox[data-tone="warn"]{color:var(--warn)}
+  #statusBox[data-tone="error"]{color:var(--danger)}
 
-    .status-text {
-      text-align: center;
-      font-size: 1.1rem;
-      margin-bottom: 12px;
-      font-weight: 500;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .status-text.visible { display: flex; }
-    .status-icon {
-      width: 26px;
-      height: 26px;
-      vertical-align: middle;
-    }
+  .rows{flex:1 1 auto;overflow:auto;min-height:0}
+  .row{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    padding:10px 14px;border-bottom:1px solid var(--line);
+    transition:background .1s;
+  }
+  .row:hover{background:var(--panel-2)}
+  .row[aria-current="true"]{background:var(--panel-2);box-shadow:inset 2px 0 0 var(--accent)}
+  .led{width:6px;height:6px;flex:0 0 6px;background:var(--accent)}
+  .row[data-tone="warn"] .led{background:var(--warn)}
+  .row[data-tone="expired"] .led{background:var(--danger)}
+  .row[data-tone="unknown"] .led{background:var(--line-2)}
+  .row-main{flex:1 1 auto;min-width:0}
+  .row-main b{display:block;font-weight:500;font-size:13.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row-main em{display:block;font:11px var(--mono);color:var(--muted);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .row-days{flex:0 0 auto;font:11px var(--mono);color:var(--muted)}
+  .row[data-tone="expired"] .row-days{color:var(--danger)}
+  .row[data-tone="warn"] .row-days{color:var(--warn)}
 
-    /* ปุ่ม Load more */
-    .load-more-wrap {
-      display: none;
-      justify-content: center;
-      margin-top: 30px;
-    }
-    .load-more-wrap.show { display: flex; }
-    .btn-load-more {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background: #ffffff;
-      color: #1a1a1a;
-      border: 2px solid #e0e0e0;
-      padding: 12px 26px;
-      border-radius: 50px;
-      font-family: 'Bai Jamjuree', sans-serif;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
-    }
-    .btn-load-more:hover {
-      border-color: #007BFF;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(0,123,255,0.12);
-    }
-    .btn-load-more img {
-      width: 22px;
-      height: 22px;
-    }
+  .list-foot{padding:10px 14px;border-top:1px solid var(--line)}
+  .btn-line{
+    width:100%;font:11px var(--mono);letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-2);border:1px solid var(--line-2);padding:9px;display:none;
+  }
+  .list-foot.show .btn-line{display:block}
+  .btn-line:hover{border-color:var(--accent);color:var(--accent)}
 
-    .footer-credit {
-      text-align: center;
-      font-size: 0.75rem;
-      color: #aaaaaa;
-      margin-top: 36px;
-    }
-    .footer-credit a {
-      color: #999999;
-    }
+  /* right pane */
+  .pane-detail{min-height:0;overflow:auto;padding:26px 30px 40px;background:var(--bg)}
+  .empty{
+    height:100%;display:flex;flex-direction:column;justify-content:center;gap:8px;
+    border:1px dashed var(--line-2);padding:40px;color:var(--muted);max-width:520px;
+  }
+  .empty b{color:var(--text-2);font-weight:500;font-size:15px}
+  .empty span{font:12px var(--mono);letter-spacing:.04em}
 
-    /* Progress bar แบบ preloading */
-    .progress-wrap {
-      display: none;
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto 24px auto;
-    }
-    .progress-track {
-      width: 100%;
-      height: 8px;
-      background: #e9ecef;
-      border-radius: 10px;
-      overflow: hidden;
-      position: relative;
-    }
-    .progress-fill {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 35%;
-      border-radius: 10px;
-      background: linear-gradient(90deg, #007BFF, #66c2ff);
-      animation: progressSlide 1.1s ease-in-out infinite;
-    }
-    @keyframes progressSlide {
-      0%   { left: -35%; }
-      100% { left: 100%; }
-    }
+  .d-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .d-head h1{margin:0;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+  .d-head .meta{margin:6px 0 0;font:12px var(--mono);color:var(--muted);letter-spacing:.03em}
+  .d-state{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .chip{
+    font:10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;
+    padding:4px 8px;border:1px solid currentColor;
+  }
+  .chip[data-tone="ok"]{color:var(--accent)}
+  .chip[data-tone="warn"]{color:var(--warn)}
+  .chip[data-tone="expired"]{color:var(--danger)}
+  .chip[data-tone="unknown"]{color:var(--muted)}
+  .d-state small{font:11px var(--mono);color:var(--muted)}
 
-    /* การ์ดแสดงผล (Light Mode) - 2 คอลัมภ์บน PC */
-    .card-list {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-      align-items: start;
-    }
-    .flex-card {
-      position: relative;
-      background: #ffffff;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-      border: 1px solid #eeeeee;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .flex-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-    }
+  .blk{margin-top:22px}
+  .blk h2{
+    margin:0 0 10px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:10px;
+  }
+  .blk h2::after{content:"";flex:1 1 auto;height:1px;background:var(--line)}
 
-    /* การ์ดของรายการที่หมดอายุการใช้งานแล้ว */
-    .flex-card.expired {
-      background: rgba(220, 53, 69, 0.08);
-      border-color: rgba(220, 53, 69, 0.35);
-    }
-    .flex-card.expired::after {
-      content: 'หมดอายุการใช้งานแล้ว';
-      position: absolute;
-      top: 24px;
-      left: -72px;
-      width: 290px;
-      padding: 6px 0;
-      background: linear-gradient(135deg, #ff5c5c, #dc3545);
-      color: #ffffff;
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-align: center;
-      transform: rotate(-45deg);
-      transform-origin: center;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-      z-index: 6;
-      pointer-events: none;
-    }
-    .card-top-line {
-      height: 4px;
-      width: 100%;
-    }
-    .flex-card-inner {
-      padding: 25px;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid #f0f0f0;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .id-name-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+  .kv{display:grid;grid-template-columns:96px minmax(0,1fr) auto;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(29,40,35,.7)}
+  .kv:last-child{border-bottom:0}
+  .kv .k{font:10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .kv .v{font:15px var(--mono);color:var(--text);overflow-wrap:anywhere;text-align:left;background:none}
+  .kv .v.hide{letter-spacing:.18em;color:var(--text-2)}
+  .kv .v.small{font-size:13px;color:var(--text-2)}
+  .iconbtn{color:var(--muted);width:24px;height:24px;display:grid;place-items:center;border:1px solid transparent}
+  .iconbtn:hover{color:var(--text);border-color:var(--line-2)}
+  .iconbtn svg{width:13px;height:13px}
 
-    /* สไตล์สำหรับข้อความที่คัดลอกได้ */
-    .copyable {
-      cursor: pointer;
-      display: inline-block;
-      padding: 2px 6px;
-      margin: -2px -6px;
-      border-radius: 4px;
-      transition: background-color 0.2s, outline 0.2s;
-    }
-    .copyable:hover {
-      background-color: #f0f4f8;
-      outline: 1px dashed #cce0ff;
-    }
-    .copyable:active {
-      background-color: #e2e8f0;
-    }
-    .copyable::after {
-      content: ' 📋';
-      font-size: 0.8rem;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .copyable:hover::after {
-      opacity: 1;
-    }
+  .expiry{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .expiry .big{font:600 22px var(--mono);letter-spacing:-.01em}
+  .expiry .big[data-tone="expired"]{color:var(--danger)}
+  .expiry .big[data-tone="warn"]{color:var(--warn)}
+  .bar-track{margin-top:12px;height:3px;background:var(--line);width:min(420px,100%)}
+  .bar-fill{height:100%;background:var(--accent)}
+  .bar-fill[data-tone="warn"]{background:var(--warn)}
+  .bar-fill[data-tone="expired"]{background:var(--danger)}
+  .bar-note{margin:8px 0 0;font:11.5px var(--mono);color:var(--muted)}
 
-    .emp-id {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #111;
-    }
-    .emp-name {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: #333;
-    }
-    .emp-dept {
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: #777;
-      padding: 4px 10px;
-      background: #f4f6f8;
-      border-radius: 6px;
-    }
-    .source-tag {
-      font-size: 0.8rem;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
-    }
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+  .btn-solid{
+    font:11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;
+    background:var(--accent);color:#04120b;padding:10px 16px;font-weight:600;
+  }
+  .btn-solid:hover{filter:brightness(1.08)}
+  .btn-ghost{
+    font:11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;
+    border:1px solid var(--line-2);color:var(--text-2);padding:10px 16px;
+  }
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
 
-    .data-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-    .data-item {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    .data-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.8rem;
-      color: #888888;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-    .data-label svg {
-      width: 15px;
-      height: 15px;
-      flex-shrink: 0;
-      stroke: #007BFF;
-    }
-    .data-value {
-      font-size: 1.05rem;
-      color: #222222;
-      font-weight: 600;
-      word-break: break-word;
-    }
-    .sub-value {
-      font-size: 0.85rem;
-      color: #666666;
-      margin-top: 4px;
-    }
+  /* template switcher */
+  .tpl{display:inline-flex;align-items:center;border:1px solid var(--line-2);font:10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+  .tpl a{padding:6px 9px;color:var(--muted);text-decoration:none;border-right:1px solid var(--line)}
+  .tpl a:last-child{border-right:0}
+  .tpl a:hover{color:var(--text)}
+  .tpl a.on{color:#04120b;background:var(--accent);font-weight:600}
 
-    /* Badge เบอร์โทร แบบเรืองแสงสีแดง */
-    .phone-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px 5px 8px;
-      border-radius: 50px;
-      background: linear-gradient(135deg, #ff5c5c, #dc3545);
-      color: #fff;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(220,53,69,0.5), 0 0 20px rgba(220,53,69,0.25);
-      animation: badgeGlow 2.2s ease-in-out infinite;
-      transition: transform 0.15s;
-    }
-    .phone-badge:hover {
-      transform: translateY(-1px) scale(1.03);
-    }
-    .phone-badge svg {
-      width: 13px;
-      height: 13px;
-      animation: ringShake 1.8s ease-in-out infinite;
-    }
-    @keyframes badgeGlow {
-      0%, 100% { box-shadow: 0 0 10px rgba(220,53,69,0.5), 0 0 20px rgba(220,53,69,0.25); }
-      50% { box-shadow: 0 0 16px rgba(220,53,69,0.85), 0 0 32px rgba(220,53,69,0.5); }
-    }
-    @keyframes ringShake {
-      0%, 80%, 100% { transform: rotate(0deg); }
-      82% { transform: rotate(-15deg); }
-      86% { transform: rotate(12deg); }
-      90% { transform: rotate(-8deg); }
-      94% { transform: rotate(4deg); }
-    }
+  /* avatars */
+  .av{position:relative;width:26px;height:26px;flex:0 0 26px;border-radius:8px;overflow:hidden;background:var(--line);display:block}
+  .av svg{width:100%;height:100%;display:block}
+  .av .led{position:absolute;right:0;bottom:0;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--panel)}
+  .av-lg{width:52px;height:52px;flex:0 0 52px;border-radius:14px}
+  .d-who{display:flex;align-items:center;gap:14px;min-width:0}
+  .d-who > div{min-width:0}
 
-    /* ปุ่มคัดลอกข้อมูลทั้งหมดของแต่ละรายการ */
-    .card-footer {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 20px;
-      padding-top: 15px;
-      border-top: 1px dashed #eeeeee;
-    }
-    .copy-card-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #f4f6f8;
-      color: #1a1a1a;
-      border: 1px solid #e2e6ea;
-      padding: 8px 16px;
-      border-radius: 50px;
-      font-family: 'Bai Jamjuree', sans-serif;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.15s;
-    }
-    .copy-card-btn:hover {
-      background: #e9edf1;
-      transform: translateY(-1px);
-    }
-    .copy-card-btn svg {
-      width: 15px;
-      height: 15px;
-      stroke: #007BFF;
-    }
+  /* toast */
+  #toast{
+    position:fixed;right:18px;bottom:18px;z-index:40;
+    background:var(--panel-2);border:1px solid var(--line-2);border-left:3px solid var(--accent);
+    color:var(--text);font:12px var(--mono);padding:10px 14px;max-width:min(480px,calc(100vw - 36px));
+    opacity:0;transform:translateY(6px);transition:opacity .16s,transform .16s;pointer-events:none;
+  }
+  #toast.show{opacity:1;transform:translateY(0)}
 
-    /* กล่องแจ้งเตือน (Toast) แบบ Badge เรืองแสงสีแดง */
-    #toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, #ff5c5c, #dc3545);
-      color: #fff;
-      padding: 12px 24px;
-      border-radius: 50px;
-      font-size: 1rem;
-      font-weight: 600;
-      box-shadow: 0 0 12px rgba(220,53,69,0.55), 0 0 28px rgba(220,53,69,0.35);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease, transform 0.3s ease;
-      z-index: 1000;
-      max-width: 90vw;
-      text-align: center;
-    }
-    #toast svg { width: 16px; height: 16px; flex-shrink: 0; }
-    #toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(-10px);
-      animation: badgeGlow 2.2s ease-in-out infinite;
-    }
+  .sk-row{padding:10px 14px;border-bottom:1px solid var(--line)}
+  .sk{height:9px;background:linear-gradient(90deg,#16201d 25%,#1e2a26 50%,#16201d 75%);background-size:220% 100%;animation:sh 1.2s infinite;margin-bottom:6px}
+  @keyframes sh{to{background-position:-220% 0}}
 
-    /* Responsive */
-    @media (max-width: 980px) {
-      .card-list { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 600px) {
-      .data-grid { grid-template-columns: 1fr; gap: 15px; }
-      .search-container { flex-direction: column; }
-      .btn-search { width: 100%; padding: 15px; }
-      .flex-card-inner { padding: 20px; }
-      .card-footer { justify-content: stretch; }
-      .copy-card-btn { width: 100%; justify-content: center; }
-    }
-  </style>
+  @media (max-width:860px){
+    .tpl a{padding:5px 6px;font-size:9.5px;letter-spacing:.06em}
+    .shell{height:auto;min-height:100dvh}
+    .workspace{grid-template-columns:1fr}
+    .pane-list{border-right:0;border-bottom:1px solid var(--line)}
+    .rows{max-height:52vh}
+    .pane-detail{padding:22px 18px 40px}
+    .kv{grid-template-columns:78px minmax(0,1fr) auto}
+    .d-head h1{font-size:21px}
+    .bar{padding:0 14px}
+    .bar-r #clock{display:none}
+  }
+</style>
 </head>
 <body>
-
-  <div class="container">
-    <div class="header-title">
-      <svg class="shield-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2L4 5V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V5L12 2Z" fill="#E6F2FF" stroke="#007BFF" stroke-width="1.5" stroke-linejoin="round"/>
-        <path d="M9 12L11 14L15.5 9.5" stroke="#007BFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>VPNcheck Co-worker</span>
+<div class="shell">
+  <header class="bar">
+    <div class="bar-l">
+      <b>VPNCHECK</b><span class="slash">/</span><span>ops console</span>
     </div>
+    <div class="bar-r">
+      <span class="tpl" aria-label="สลับแม่แบบ">
+        <a class="on" href="index.html" aria-current="page">console</a>
+        <a href="template-registry.html">registry</a>
+        <a href="template-poster.html">poster</a>
+      </span>
+      <span class="link"><i></i>link ok</span>
+      <span id="clock">--:--</span>
+    </div>
+  </header>
 
-    <div class="search-container">
-      <div class="input-wrapper">
-        <input type="text" id="searchKey" placeholder="ระบุรหัสพนักงาน หรือ ชื่อ แล้วกด Enter..." onkeypress="if(event.key === 'Enter') searchData()">
+  <div class="workspace">
+    <aside class="pane-list">
+      <div class="search-wrap">
+        <form class="search" id="searchForm" role="search" autocomplete="off">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.4-3.4" stroke="currentColor" stroke-width="2"/></svg>
+          <label class="sr-only" for="searchKey" style="position:absolute;left:-9999px">ค้นหารหัสพนักงานหรือชื่อ</label>
+          <input id="searchKey" type="search" placeholder="ค้น: รหัส / ชื่อ…" aria-label="ค้นหารหัสพนักงานหรือชื่อ">
+          <button type="submit">enter</button>
+        </form>
       </div>
-      <button class="btn-search" onclick="searchData()">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="11" cy="11" r="7" stroke="#007BFF" stroke-width="2"/>
-          <path d="M20 20L16.5 16.5" stroke="#007BFF" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <span>ค้นหาข้อมูล</span>
-      </button>
-    </div>
+      <div class="list-meta">
+        <span id="statusBox" role="status" aria-live="polite">ready</span>
+        <span id="countBox">0</span>
+      </div>
+      <div class="rows" id="resultBox"></div>
+      <div class="list-foot" id="loadMoreWrap"></div>
+    </aside>
 
-    <div id="statusBox" class="status-text" style="display: none;"></div>
-    <div id="progressWrap" class="progress-wrap">
-      <div class="progress-track"><div class="progress-fill"></div></div>
-    </div>
-    <div id="resultBox" class="card-list"></div>
-    <div id="loadMoreWrap" class="load-more-wrap"></div>
-
-    <div class="footer-credit">
-      สนับสนุนงานโดย Antonial 7769
-    </div>
+    <section class="pane-detail" id="detailBox" aria-live="polite"></section>
   </div>
+</div>
 
-  <div id="toast">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="4" y="4" width="16" height="16" rx="3" stroke="#fff" stroke-width="1.8"/>
-      <path d="M8 8H16M8 12H16M8 16H12" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
-    </svg>
-    <span id="toastText">คัดลอกข้อมูลแล้วข้าน้อย!</span>
-  </div>
+<div id="toast" role="status" aria-live="polite"></div>
 
-  <script>
-    // ⚠️ อย่าลืมแก้ URL ให้เป็นของ Web App ฝั่ง Google Apps Script ของอ้ายหำเน้อ
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbxMqht7LawyLd6pesWRdGFnMwP6eYXfSeklj2wtDkFTqLZxzzdkxg-iNomzR3LXonEKUg/exec';
+<script src="assets/avatar.js"></script>
+<script>
+(function () {
+  'use strict';
 
-    const themes = [
-      { accent: "#007BFF", bg: "#E6F2FF" },
-      { accent: "#28A745", bg: "#E9F7EF" },
-      { accent: "#6F42C1", bg: "#F3E8FF" },
-      { accent: "#FD7E14", bg: "#FFF2E5" },
-      { accent: "#E83E8C", bg: "#FDE8F3" }
-    ];
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxMqht7LawyLd6pesWRdGFnMwP6eYXfSeklj2wtDkFTqLZxzzdkxg-iNomzR3LXonEKUg/exec';
+  var PAGE = 10;
+  var MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  var COPYICON = '<svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px"><rect x="8" y="8" width="11" height="12" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M5 16V6a2 2 0 012-2h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+  var EYE = '<svg viewBox="0 0 24 24" fill="none"><path d="M2.6 12S6 6.2 12 6.2 21.4 12 21.4 12 18 17.8 12 17.8 2.6 12 2.6 12z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.7"/></svg>';
+  var EYE_OFF = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M9.6 6.1A9.5 9.5 0 0112 5.9c6 0 9.4 5.8 9.4 5.8a16 16 0 01-2.7 3.3M6.2 7.5A16 16 0 002.6 11.7s3.4 5.8 9.4 5.8c1 0 2-.2 2.9-.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
 
-    // เก็บผลลัพธ์การค้นหาล่าสุดไว้ใช้กับปุ่ม "คัดลอกข้อมูลทั้งหมด" ของแต่ละรายการ
-    let currentResults = [];
+  var $ = function (id) { return document.getElementById(id); };
+  var dom = {
+    form: $('searchForm'), input: $('searchKey'), status: $('statusBox'), count: $('countBox'),
+    rows: $('resultBox'), more: $('loadMoreWrap'), detail: $('detailBox'), toast: $('toast'), clock: $('clock')
+  };
 
-    // การแบ่งหน้า: แสดงทีละ 10 รายการ กด Load more เพื่อดูเพิ่ม
-    const PAGE_SIZE = 10;
-    let displayCount = PAGE_SIZE;
+  var state = { all: [], shown: PAGE, selected: -1, keyword: '', requestId: 0 };
+  var revealed = {};
 
-    // ไอคอนแบบ Animated จาก Flaticon (แหล่งเดียวกันทั้งชุด: Freepik / Flaticon Animated Icons)
-    // Absence icon: https://www.flaticon.com/free-animated-icon/absence_12340772
-    const ICON_RESULT_COUNT = 'https://cdn-icons-gif.flaticon.com/12340/12340772.gif';
-    // Loading icon: https://www.flaticon.com/free-animated-icon/loading_17905699
-    const ICON_LOAD_MORE = 'https://cdn-icons-gif.flaticon.com/17905/17905699.gif';
+  function art(seed) { return typeof avatarSvg === 'function' ? avatarSvg(seed) : ''; }
 
-    // ชุดไอคอนเส้น (line icon) มาจากแหล่งเดียวกัน สไตล์เดียวกันทั้งหมด: stroke-width 1.8, rounded cap/join
-    const icons = {
-      phone: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6.6 10.8C7.9 13.4 10 15.5 12.6 16.8L14.6 14.8C14.9 14.5 15.3 14.4 15.6 14.6C16.7 15 17.9 15.2 19.1 15.2C19.6 15.2 20 15.6 20 16.1V19.4C20 19.9 19.6 20.3 19.1 20.3C10.2 20.3 3 13.1 3 4.2C3 3.7 3.4 3.3 3.9 3.3H7.2C7.7 3.3 8.1 3.7 8.1 4.2C8.1 5.4 8.3 6.6 8.7 7.7C8.8 8 8.7 8.4 8.5 8.7L6.6 10.8Z" fill="#fff"/>
-      </svg>`,
-      user: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="8" r="3.4" stroke-width="1.8"/>
-        <path d="M5 20C5.8 16.4 8.5 14.5 12 14.5C15.5 14.5 18.2 16.4 19 20" stroke-width="1.8" stroke-linecap="round"/>
-      </svg>`,
-      key: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="8" cy="15" r="3.4" stroke-width="1.8"/>
-        <path d="M10.4 12.6L18.5 4.5" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M15.5 7.5L18 10" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M18 4.5L20.5 7" stroke-width="1.8" stroke-linecap="round"/>
-      </svg>`,
-      headset: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 13V12C4 7.6 7.6 4 12 4C16.4 4 20 7.6 20 12V13" stroke-width="1.8" stroke-linecap="round"/>
-        <rect x="3" y="13" width="4" height="6" rx="1.5" stroke-width="1.8"/>
-        <rect x="17" y="13" width="4" height="6" rx="1.5" stroke-width="1.8"/>
-        <path d="M19 19V20C19 21.1 18.1 22 17 22H13.5" stroke-width="1.8" stroke-linecap="round"/>
-      </svg>`,
-      copy: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="7" y="7" width="12" height="14" rx="2" stroke-width="1.8"/>
-        <path d="M5 17V5C5 3.89543 5.89543 3 7 3H15" stroke-width="1.8" stroke-linecap="round"/>
-      </svg>`
+  function tplLinks(keyword) {
+    var links = document.querySelectorAll('.tpl a');
+    for (var i = 0; i < links.length; i++) {
+      var href = links[i].getAttribute('data-href') || links[i].getAttribute('href');
+      links[i].setAttribute('data-href', href);
+      links[i].setAttribute('href', href + (keyword ? '?keyword=' + encodeURIComponent(keyword) : ''));
+    }
+  }
+
+  function esc(v) {
+    return String(v === null || v === undefined ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function pick(o, keys, fb) {
+    for (var i = 0; i < keys.length; i++) {
+      var v = o[keys[i]];
+      if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+    }
+    return fb === undefined ? '' : fb;
+  }
+  function parseDate(str) {
+    if (!str) return null;
+    var s = String(str).trim(), m;
+    m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+    if (m) { var y = +m[3]; if (y > 2400) y -= 543; return new Date(y, +m[2] - 1, +m[1]); }
+    var d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function daysLeft(str) {
+    var d = parseDate(str);
+    if (!d) return null;
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    var x = new Date(d.getTime()); x.setHours(0, 0, 0, 0);
+    return Math.round((x - t) / 86400000);
+  }
+  function toneOf(str) {
+    var n = daysLeft(str);
+    if (n === null) return 'unknown';
+    if (n < 0) return 'expired';
+    if (n <= 30) return 'warn';
+    return 'ok';
+  }
+  function dateLabel(str) {
+    var d = parseDate(str);
+    if (!d) return '—';
+    return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + (d.getFullYear() + 543);
+  }
+  function toneWord(t) {
+    return t === 'expired' ? 'expired' : t === 'warn' ? 'expiring soon' : t === 'ok' ? 'active' : 'no expiry';
+  }
+  function daysWord(n) {
+    if (n === null) return 'ไม่มีข้อมูลวันหมดอายุ';
+    if (n < 0) return 'หมดอายุแล้ว ' + Math.abs(n) + ' วัน';
+    if (n === 0) return 'หมดอายุวันนี้';
+    return 'เหลือ ' + n + ' วัน';
+  }
+
+  function fields(info) {
+    return {
+      id: pick(info, ['id', 'empId'], ''),
+      name: pick(info, ['name', 'firstName'], ''),
+      surname: pick(info, ['surname', 'lastName'], ''),
+      dept: pick(info, ['dept', 'department'], ''),
+      phone: pick(info, ['phone', 'tel'], ''),
+      user: pick(info, ['user', 'username'], ''),
+      pass: pick(info, ['pass', 'password'], ''),
+      expire: pick(info, ['expire', 'expired', 'expiry'], ''),
+      xlite: pick(info, ['xlite', 'xLite', 'voip'], ''),
+      server: pick(info, ['server', 'svr'], '')
     };
-    // ทำให้ทุกไอคอนใช้ stroke สีเดียวกับที่กำหนดใน CSS (currentColor)
-    Object.keys(icons).forEach(k => {
-      icons[k] = icons[k].replace(/<svg /, '<svg stroke="currentColor" ');
-    });
+  }
 
-    // ฟังก์ชันสำหรับคัดลอกข้อมูลและแสดง Popup แจ้งเตือน
-    function copyText(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast(`คัดลอก "${text}" แล้วข้าน้อย!`);
-      }).catch(err => {
-        console.error('Copy failed', err);
-        alert('❌ เบราว์เซอร์ไม่รองรับการคัดลอกอัตโนมัติ');
-      });
+  var toastTimer = null;
+  function toast(msg) {
+    dom.toast.textContent = msg;
+    dom.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { dom.toast.classList.remove('show'); }, 2500);
+  }
+
+  function copy(text, label) {
+    var value = String(text === null || text === undefined ? '' : text);
+    if (!value || value === '—') return;
+    var done = function () { toast('copied · ' + (label || '') ); };
+    var legacy = function () {
+      var ta = document.createElement('textarea');
+      ta.value = value; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      ok ? done() : toast('copy failed');
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(value).then(done).catch(legacy);
+    } else { legacy(); }
+  }
+
+  function rowsHtml() {
+    var visible = state.all.slice(0, state.shown);
+    return visible.map(function (info, i) {
+      var f = fields(info);
+      var tone = toneOf(f.expire);
+      var n = daysLeft(f.expire);
+      var full = (f.name + ' ' + f.surname).trim() || '—';
+      return '<button type="button" class="row" data-pick="' + i + '" data-tone="' + tone + '"' +
+        (state.selected === i ? ' aria-current="true"' : '') + '>' +
+        '<span class="av">' + art(f.id || full) + '<i class="led"></i></span>' +
+        '<span class="row-main"><b>' + esc(full) + '</b><em>' + esc(f.id || '—') + ' · ' + esc(f.dept || '—') + '</em></span>' +
+        '<span class="row-days">' + (n === null ? '—' : (n < 0 ? n : n + 'd')) + '</span>' +
+      '</button>';
+    }).join('');
+  }
+
+  function detailHtml() {
+    var info = state.all[state.selected];
+    if (!info) {
+      return '<div class="empty"><b>เลือกรายการจากด้านซ้าย</b>' +
+        '<span>พิมพ์รหัสพนักงานหรือชื่อ แล้วกด Enter — จากนั้นคลิกรายการเพื่อดูข้อมูลเต็ม</span></div>';
     }
+    var f = fields(info);
+    var tone = toneOf(f.expire);
+    var n = daysLeft(f.expire);
+    var full = (f.name + ' ' + f.surname).trim() || '—';
+    var pct = n === null ? 0 : Math.max(0, Math.min(100, Math.round((n / 365) * 100)));
 
-    // คัดลอกข้อมูลทั้งหมดของ "รายการเดียว" (การ์ดเดียว) ไม่ใช่ทั้งหน้า
-    function copyCardData(index) {
-      const info = currentResults[index];
-      if (!info) return;
+    return '<div class="d-head">' +
+        '<div class="d-who">' +
+        '<span class="av av-lg">' + art(f.id || full) + '</span>' +
+        '<div><h1>' + esc(full) + '</h1>' +
+        '<p class="meta">' + esc(f.id || '—') + ' &nbsp;·&nbsp; ' + esc(f.dept || '—') + (f.phone ? ' &nbsp;·&nbsp; ' + esc(f.phone) : '') + '</p></div>' +
+        '</div>' +
+        '<div class="d-state"><span class="chip" data-tone="' + tone + '">' + toneWord(tone) + '</span>' +
+        '<small>' + esc(daysWord(n)) + '</small></div>' +
+      '</div>' +
 
-      const text = [
-        `รหัสพนักงาน: ${info.id}`,
-        `ชื่อ-นามสกุล: ${info.name} ${info.surname}`,
-        `แผนก/ส่วนงาน: ${info.dept}`,
-        `เบอร์โทรติดต่อ: ${info.phone}`,
-        `User: ${info.user}`,
-        `รหัสผ่าน: ${info.pass} (${info.expire})`,
-        `X-Lite: ${info.xlite} (Svr: ${info.server})`
-      ].join('\n');
+      '<div class="blk"><h2>credentials</h2>' +
+        '<div class="kv"><span class="k">user</span>' +
+          '<button class="v" data-copy="' + esc(f.user) + '" data-label="user">' + esc(f.user || '—') + '</button>' +
+          '<button class="iconbtn" data-copy="' + esc(f.user) + '" data-label="user" aria-label="คัดลอก user">' + COPYICON + '</button></div>' +
+        '<div class="kv"><span class="k">pass</span>' +
+          '<button class="v ' + (revealed[state.selected] ? '' : 'hide') + '" data-copy="' + esc(f.pass) + '" data-label="password" data-secret="' + esc(f.pass) + '">' +
+            esc(revealed[state.selected] ? (f.pass || '—') : '••••••••') + '</button>' +
+          '<button class="iconbtn" data-reveal="1" aria-label="แสดง / ซ่อนรหัสผ่าน">' + (revealed[state.selected] ? EYE_OFF : EYE) + '</button></div>' +
+        '<div class="kv"><span class="k">phone</span>' +
+          '<button class="v small" data-copy="' + esc(f.phone) + '" data-label="phone">' + esc(f.phone || '—') + '</button>' +
+          '<span></span></div>' +
+      '</div>' +
 
-      navigator.clipboard.writeText(text).then(() => {
-        showToast(`คัดลอกข้อมูลของ ${info.name} ${info.surname} แล้วข้าน้อย!`);
-      }).catch(err => {
-        console.error('Copy card failed', err);
-        alert('❌ เบราว์เซอร์ไม่รองรับการคัดลอกอัตโนมัติ');
-      });
+      '<div class="blk"><h2>expiry</h2>' +
+        '<div class="expiry"><span class="big" data-tone="' + tone + '">' + esc(dateLabel(f.expire)) + '</span></div>' +
+        '<div class="bar-track"><div class="bar-fill" data-tone="' + tone + '" style="width:' + (tone === 'expired' ? 100 : pct) + '%"></div></div>' +
+        '<p class="bar-note">' + esc(daysWord(n)) + '</p>' +
+      '</div>' +
+
+      '<div class="blk"><h2>voip</h2>' +
+        '<div class="kv"><span class="k">x-lite</span>' +
+          '<button class="v" data-copy="' + esc(f.xlite) + '" data-label="x-lite">' + esc(f.xlite || '—') + '</button><span></span></div>' +
+        '<div class="kv"><span class="k">server</span>' +
+          '<button class="v" data-copy="' + esc(f.server) + '" data-label="server">' + esc(f.server || '—') + '</button><span></span></div>' +
+      '</div>' +
+
+      '<div class="actions">' +
+        '<button class="btn-solid" data-copy-all="1">คัดลอกข้อมูลทั้งหมด</button>' +
+        '<button class="btn-ghost" data-copy="' + esc(f.pass) + '" data-label="password">คัดลอกรหัสผ่าน</button>' +
+      '</div>';
+  }
+
+  function render() {
+    dom.rows.innerHTML = rowsHtml();
+    var visible = Math.min(state.shown, state.all.length);
+    dom.count.textContent = String(state.all.length);
+    dom.more.innerHTML = state.shown < state.all.length
+      ? '<button class="btn-line" id="loadMoreBtn">load more · ' + (state.all.length - state.shown) + ' remaining</button>'
+      : '';
+    dom.more.classList.toggle('show', state.shown < state.all.length);
+    dom.detail.innerHTML = detailHtml();
+    if (state.all.length) {
+      dom.status.textContent = 'found ' + state.all.length;
+      dom.status.setAttribute('data-tone', 'ok');
     }
+    void visible;
+  }
 
-    function showToast(message) {
-      const toast = document.getElementById('toast');
-      document.getElementById('toastText').innerText = message;
-      toast.classList.add('show');
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => {
-        toast.classList.remove('show');
-      }, 2500);
-    }
+  function copyAll() {
+    var info = state.all[state.selected];
+    if (!info) return;
+    var f = fields(info);
+    var text = [
+      'รหัสพนักงาน: ' + (f.id || '—'),
+      'ชื่อ-นามสกุล: ' + ((f.name + ' ' + f.surname).trim() || '—'),
+      'แผนก: ' + (f.dept || '—'),
+      'เบอร์โทร: ' + (f.phone || '—'),
+      'User: ' + (f.user || '—'),
+      'Password: ' + (f.pass || '—'),
+      'หมดอายุ: ' + dateLabel(f.expire),
+      'X-Lite: ' + (f.xlite || '—'),
+      'Server: ' + (f.server || '—')
+    ].join('\n');
+    copy(text, 'record');
+  }
 
-    // แปลงข้อความวันที่หมดอายุ (รองรับหลายรูปแบบ: yyyy-mm-dd, dd/mm/yyyy, dd-mm-yyyy, ปี พ.ศ.) เป็น Date
-    function parseExpireDate(str) {
-      if (!str) return null;
-      const s = String(str).trim();
+  function runSearch() {
+    var kw = dom.input.value.trim();
+    if (!kw) { dom.status.textContent = 'keyword required'; dom.status.setAttribute('data-tone', 'warn'); dom.input.focus(); return; }
 
-      // yyyy-mm-dd หรือ yyyy/mm/dd
-      let m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
-      if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    var rid = ++state.requestId;
+    state.keyword = kw;
+    tplLinks(kw);
+    state.all = [];
+    state.selected = -1;
+    state.shown = PAGE;
+    revealed = {};
+    dom.status.textContent = 'searching…';
+    dom.status.removeAttribute('data-tone');
+    dom.count.textContent = '0';
+    dom.rows.innerHTML = '<div class="sk-row"><div class="sk" style="width:70%"></div><div class="sk" style="width:45%"></div></div>'.repeat(4);
+    dom.detail.innerHTML = detailHtml();
 
-      // dd-mm-yyyy หรือ dd/mm/yyyy (รองรับปี พ.ศ. ด้วย)
-      m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
-      if (m) {
-        let year = +m[3];
-        if (year > 2400) year -= 543; // พ.ศ. -> ค.ศ.
-        return new Date(year, +m[2] - 1, +m[1]);
-      }
-
-      // เผื่อรูปแบบอื่น ให้ JS ลองแปลงเอง
-      const fallback = new Date(s);
-      return isNaN(fallback.getTime()) ? null : fallback;
-    }
-
-    // ตรวจสอบว่ารายการนี้หมดอายุการใช้งานแล้วหรือยัง
-    function isExpired(expireStr) {
-      const d = parseExpireDate(expireStr);
-      if (!d) return false;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime() < today.getTime();
-    }
-
-    // สร้าง HTML ของการ์ดหนึ่งใบ
-    function buildCardHtml(info, index) {
-      const theme = themes[index % themes.length];
-      const expired = isExpired(info.expire);
-      return `
-        <div class="flex-card${expired ? ' expired' : ''}">
-          <div class="card-top-line" style="background-color: ${theme.accent};"></div>
-          <div class="flex-card-inner">
-            <div class="card-header">
-              <div class="id-name-group">
-                <span class="emp-id copyable" onclick="copyText('${info.id}')" title="คลิกเพื่อคัดลอกรหัส">${info.id}</span>
-                <span class="emp-name copyable" onclick="copyText('${info.name} ${info.surname}')" title="คลิกเพื่อคัดลอกชื่อ">${info.name} ${info.surname}</span>
-                <span class="emp-dept copyable" onclick="copyText('${info.dept}')" title="คลิกเพื่อคัดลอกแผนก">${info.dept}</span>
-                <span class="phone-badge" onclick="copyText('${info.phone}')" title="คลิกเพื่อคัดลอกเบอร์โทร">
-                  ${icons.phone}
-                  <span>${info.phone}</span>
-                </span>
-              </div>
-              <div class="source-tag" style="background-color: ${theme.bg}; color: ${theme.accent};">${info.source}</div>
-            </div>
-
-            <div class="data-grid">
-              <div class="data-item">
-                <div class="data-label">${icons.user}<span>บัญชี (User)</span></div>
-                <div class="data-value copyable" onclick="copyText('${info.user}')" title="คลิกเพื่อคัดลอก User" style="color: ${theme.accent};">${info.user}</div>
-              </div>
-              <div class="data-item">
-                <div class="data-label">${icons.key}<span>รหัสผ่าน / หมดอายุ</span></div>
-                <div class="data-value copyable" onclick="copyText('${info.pass}')" title="คลิกเพื่อคัดลอกรหัสผ่าน">${info.pass}</div>
-                <div class="sub-value" style="color: #DC3545;">⏳ ${info.expire}</div>
-              </div>
-              <div class="data-item">
-                <div class="data-label">${icons.headset}<span>ระบบ VoIP</span></div>
-                <div class="data-value copyable" onclick="copyText('${info.xlite}')" title="คลิกเพื่อคัดลอก X-Lite">${info.xlite}</div>
-                <div class="sub-value copyable" onclick="copyText('${info.server}')" title="คลิกเพื่อคัดลอก Server">Svr: ${info.server}</div>
-              </div>
-            </div>
-
-            <div class="card-footer">
-              <button class="copy-card-btn" onclick="copyCardData(${index})">
-                ${icons.copy}
-                <span>คัดลอกข้อมูลทั้งหมด</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // แสดงการ์ดตามจำนวนหน้าปัจจุบัน (displayCount) พร้อมปุ่ม Load more ถ้ายังมีรายการเหลือ
-    function renderCards() {
-      const resultBox = document.getElementById('resultBox');
-      const loadMoreWrap = document.getElementById('loadMoreWrap');
-
-      const visibleItems = currentResults.slice(0, displayCount);
-      resultBox.innerHTML = visibleItems.map((info, i) => buildCardHtml(info, i)).join('');
-
-      if (displayCount < currentResults.length) {
-        const remaining = currentResults.length - displayCount;
-        loadMoreWrap.innerHTML = `
-          <button class="btn-load-more" onclick="loadMore()">
-            <img src="${ICON_LOAD_MORE}" alt="กำลังโหลด">
-            <span>โหลดเพิ่มเติม (เหลืออีก ${remaining} รายการ)</span>
-          </button>
-        `;
-        loadMoreWrap.classList.add('show');
-      } else {
-        loadMoreWrap.innerHTML = "";
-        loadMoreWrap.classList.remove('show');
-      }
-    }
-
-    // กด Load more เพื่อแสดงข้อมูลอีก 10 รายการถัดไป
-    function loadMore() {
-      displayCount += PAGE_SIZE;
-      renderCards();
-    }
-
-    async function searchData() {
-      const keyword = document.getElementById('searchKey').value.trim();
-      const statusBox = document.getElementById('statusBox');
-      const progressWrap = document.getElementById('progressWrap');
-      const resultBox = document.getElementById('resultBox');
-      const loadMoreWrap = document.getElementById('loadMoreWrap');
-
-      currentResults = [];
-      displayCount = PAGE_SIZE;
-
-      if (!keyword) {
-        statusBox.style.display = "flex";
-        statusBox.style.color = "#DC3545";
-        statusBox.innerText = "⚠️ กรุณากรอกรหัสหรือชื่อก่อนข้าน้อย";
-        progressWrap.style.display = "none";
-        resultBox.innerHTML = "";
-        loadMoreWrap.classList.remove('show');
-        return;
-      }
-
-      statusBox.style.display = "flex";
-      statusBox.style.color = "#6c757d";
-      statusBox.innerText = "กำลังตรวจสอบฐานข้อมูล...";
-      progressWrap.style.display = "block";
-      resultBox.innerHTML = "";
-      loadMoreWrap.classList.remove('show');
-
-      try {
-        const targetUrl = `${scriptUrl}?action=search&keyword=${encodeURIComponent(keyword)}`;
-        const response = await fetch(targetUrl);
-        const result = await response.json();
-
-        progressWrap.style.display = "none";
-
-        if (result.results && result.results.length > 0) {
-          const totalItems = result.results.length;
-          currentResults = result.results;
-          statusBox.style.color = "#28A745";
-          statusBox.innerHTML = `<img class="status-icon" src="${ICON_RESULT_COUNT}" alt="พบข้อมูล"> พบข้อมูลทั้งหมด ${totalItems} รายการ`;
-
-          renderCards();
-        } else {
-          statusBox.style.color = "#DC3545";
-          statusBox.innerText = `❌ ไม่พบข้อมูลของ "${keyword}" ข้าน้อย`;
+    fetch(SCRIPT_URL + '?action=search&keyword=' + encodeURIComponent(kw), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        if (rid !== state.requestId) return;
+        var list = data && data.results ? data.results : [];
+        if (!Array.isArray(list)) list = [];
+        state.all = list;
+        if (!list.length) {
+          dom.rows.innerHTML = '';
+          dom.more.innerHTML = '';
+          dom.more.classList.remove('show');
+          dom.status.textContent = 'no match';
+          dom.status.setAttribute('data-tone', 'warn');
+          dom.detail.innerHTML = '<div class="empty"><b>ไม่พบบันทึกที่ตรงกับ “' + esc(kw) + '”</b>' +
+            '<span>ลองสะกดรหัสพนักงานหรือชื่อให้สั้นลง</span></div>';
+          return;
         }
-      } catch (err) {
-        progressWrap.style.display = "none";
-        statusBox.style.color = "#DC3545";
-        statusBox.innerText = "❌ เกิดปัญหาการเชื่อมต่อ: " + err.toString();
-      }
+        state.selected = 0;
+        render();
+      })
+      .catch(function (err) {
+        if (rid !== state.requestId) return;
+        dom.status.textContent = 'link error';
+        dom.status.setAttribute('data-tone', 'error');
+        dom.rows.innerHTML = '';
+        dom.detail.innerHTML = '<div class="empty"><b>เชื่อมต่อฐานข้อมูลไม่สำเร็จ</b>' +
+          '<span>' + esc(err && err.message ? err.message : String(err)) + '</span>' +
+          '<span><button class="btn-ghost" id="retryBtn" style="margin-top:10px">ลองอีกครั้ง</button></span></div>';
+      });
+  }
+
+  dom.form.addEventListener('submit', function (e) { e.preventDefault(); runSearch(); });
+
+  dom.rows.addEventListener('click', function (e) {
+    var row = e.target.closest('[data-pick]');
+    if (!row) return;
+    state.selected = parseInt(row.getAttribute('data-pick'), 10);
+    render();
+    if (window.matchMedia('(max-width: 860px)').matches) {
+      dom.detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  </script>
+  });
+
+  dom.more.addEventListener('click', function (e) {
+    if (!e.target.closest('#loadMoreBtn')) return;
+    state.shown += PAGE;
+    render();
+  });
+
+  dom.detail.addEventListener('click', function (e) {
+    var rev = e.target.closest('[data-reveal]');
+    if (rev) {
+      revealed[state.selected] = !revealed[state.selected];
+      dom.detail.innerHTML = detailHtml();
+      return;
+    }
+    if (e.target.closest('[data-copy-all]')) { copyAll(); return; }
+    if (e.target.closest('#retryBtn')) { runSearch(); return; }
+    var hit = e.target.closest('[data-copy]');
+    if (hit) { copy(hit.getAttribute('data-copy'), hit.getAttribute('data-label')); return; }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = (e.target.tagName || '').toLowerCase();
+    if (t === 'input' || t === 'textarea') return;
+    e.preventDefault();
+    dom.input.focus();
+  });
+
+  function tick() {
+    var d = new Date();
+    var p = function (v) { return (v < 10 ? '0' : '') + v; };
+    dom.clock.textContent = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  var startKeyword = (new URLSearchParams(location.search).get('keyword') || '').trim();
+  if (startKeyword) {
+    dom.input.value = startKeyword;
+    tplLinks(startKeyword);
+    runSearch();
+  } else {
+    dom.detail.innerHTML = detailHtml();
+    dom.input.focus();
+  }
+})();
+</script>
 </body>
 </html>

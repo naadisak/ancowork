@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VPNCHECK — ทะเบียนบัญชี VPN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fffdf3;
+    --ink:#0c0c0c;
+    --ink-2:#2a2a26;
+    --muted:#6d6a5e;
+    --yellow:#ffd83d;
+    --blue:#1f3bff;
+    --ok:#c6f24e;
+    --warn:#ffb020;
+    --danger:#ff3b30;
+    --sans:'IBM Plex Sans Thai',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+  ::selection{background:var(--yellow);color:var(--ink)}
+
+  /* ---------- top strip ---------- */
+  .strip{
+    background:var(--ink);color:var(--paper);
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:7px 22px;font:11px/1.4 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  }
+  .strip b{color:var(--yellow);font-weight:700;letter-spacing:.16em}
+  .strip .r{white-space:nowrap;opacity:.75}
+  .strip .tpl a{color:#fff;opacity:.5;text-decoration:none;margin:0 6px;border-bottom:2px solid transparent;padding-bottom:1px;letter-spacing:.14em}
+  .strip .tpl a:hover{opacity:.85}
+  .strip .tpl a.on{opacity:1;color:var(--yellow);border-bottom-color:var(--yellow)}
+
+  .page{max-width:1220px;margin:0 auto;padding:0 22px 70px}
+
+  /* ---------- masthead ---------- */
+  .mast{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:34px 0 22px;border-bottom:3px solid var(--ink)}
+  .mast h1{
+    margin:0;font-size:clamp(34px,6vw,64px);font-weight:700;line-height:.98;
+    letter-spacing:-.03em;
+  }
+  .mast h1 span{background:var(--yellow);padding:0 .08em;box-shadow:6px 6px 0 var(--ink);display:inline-block}
+  .mast p{margin:20px 0 0;font:12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);max-width:44ch;line-height:1.7}
+  .mast .num{font:700 13px var(--mono);letter-spacing:.1em;border:2px solid var(--ink);padding:8px 12px;box-shadow:4px 4px 0 var(--ink);background:var(--paper)}
+
+  /* ---------- search ---------- */
+  .finder{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin:30px 0 14px}
+  .finder .field{flex:1 1 420px;display:flex;align-items:center;border:2px solid var(--ink);background:var(--paper);padding-left:14px;min-width:0}
+  .finder .field svg{width:20px;height:20px;flex:0 0 auto}
+  .finder input{
+    flex:1 1 auto;min-width:0;border:0;outline:0;background:transparent;
+    font-family:var(--sans);font-size:21px;font-weight:500;color:var(--ink);padding:14px 12px;
+  }
+  .finder input::placeholder{color:#a09b88;font-weight:400}
+  .finder .go{
+    flex:0 0 auto;background:var(--ink);color:var(--yellow);
+    font:700 15px var(--mono);letter-spacing:.1em;text-transform:uppercase;
+    padding:0 28px;display:flex;align-items:center;gap:10px;
+    transition:background .12s,color .12s;
+  }
+  .finder .go:hover{background:var(--blue);color:#fff}
+  .finder .go[disabled]{opacity:.6;cursor:progress}
+  .find-note{display:flex;gap:18px;flex-wrap:wrap;justify-content:space-between;font:11.5px var(--mono);letter-spacing:.04em;color:var(--muted);margin-bottom:30px}
+  .find-note kbd{border:1px solid var(--ink);padding:0 4px;background:var(--yellow);color:var(--ink);font:11px var(--mono)}
+
+  /* ---------- ledger bar ---------- */
+  .bar{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  .bar h2{margin:0;font:700 13px var(--mono);letter-spacing:.18em;text-transform:uppercase}
+  #statusBox{margin:0;font:12.5px var(--mono);letter-spacing:.03em;color:var(--muted)}
+  #statusBox[data-tone="ok"]{color:var(--ink);font-weight:700}
+  #statusBox[data-tone="warn"]{color:#b06a00}
+  #statusBox[data-tone="error"]{color:var(--danger);font-weight:700}
+
+  /* ---------- cards ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:26px}
+  .card{
+    border:2px solid var(--ink);background:var(--paper);
+    box-shadow:6px 6px 0 var(--ink);
+    transition:transform .12s,box-shadow .12s;
+  }
+  .card:hover{transform:translate(-2px,-2px);box-shadow:9px 9px 0 var(--ink)}
+  .card[data-tone="expired"]{box-shadow:6px 6px 0 var(--danger)}
+  .card[data-tone="expired"]:hover{box-shadow:9px 9px 0 var(--danger)}
+
+  .card-head{display:flex;align-items:stretch;justify-content:space-between;gap:10px;background:var(--ink);color:var(--paper);padding:9px 14px}
+  .card-head .who{min-width:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .card-head .av{width:30px;height:30px;flex:0 0 30px;border-radius:6px;overflow:hidden;border:1.5px solid var(--paper);background:var(--paper);display:block}
+  .card-head .av svg{width:100%;height:100%;display:block}
+  .card-head .id{font:700 13px var(--mono);color:var(--yellow);letter-spacing:.04em}
+  .card-head .nm{font-size:15px;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
+  .tag{
+    font:700 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;
+    padding:3px 7px;color:var(--ink);background:var(--ok);align-self:center;white-space:nowrap;
+  }
+  .tag[data-tone="warn"]{background:var(--warn)}
+  .tag[data-tone="expired"]{background:var(--danger);color:#fff}
+  .tag[data-tone="unknown"]{background:#c9c4b4}
+
+  .card-body{padding:14px 14px 12px}
+  .rows{border-top:2px solid var(--ink)}
+  .r{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #e2dcc8}
+  .r:last-child{border-bottom:0}
+  .r .k{flex:0 0 92px;font:10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .r .v{flex:1 1 auto;min-width:0;text-align:left;font:13.5px var(--mono);color:var(--ink);overflow-wrap:anywhere}
+  .r .v:hover{background:var(--yellow)}
+  .r .v.mute{color:var(--muted)}
+  .r .v.pw{letter-spacing:.16em}
+  .r .eye{flex:0 0 auto;width:22px;height:22px;display:grid;place-items:center;border:1px solid #cfc9b4;color:var(--ink-2)}
+  .r .eye:hover{background:var(--ink);color:var(--yellow);border-color:var(--ink)}
+  .r .eye svg{width:13px;height:13px}
+  .r .sub{flex:0 0 auto;font:11px var(--mono);color:var(--muted);letter-spacing:.02em}
+  .r .sub.danger{color:var(--danger);font-weight:700}
+  .r .sub.warn{color:#a55d00;font-weight:700}
+
+  .card-foot{display:flex;gap:8px;padding:0 14px 14px;flex-wrap:wrap}
+  .b1{
+    flex:1 1 auto;text-align:center;border:2px solid var(--ink);background:var(--ink);color:var(--paper);
+    font:700 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:9px;
+    transition:background .12s,color .12s;
+  }
+  .b1:hover{background:var(--yellow);color:var(--ink)}
+  .b2{
+    flex:0 0 auto;border:2px solid var(--ink);padding:9px 14px;
+    font:700 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;
+  }
+  .b2:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+  /* ---------- states ---------- */
+  .state{border:2px solid var(--ink);padding:34px;background:var(--paper);box-shadow:6px 6px 0 var(--ink)}
+  .state h3{margin:0 0 6px;font-size:22px;font-weight:700;letter-spacing:-.01em}
+  .state p{margin:0;font:12.5px var(--mono);color:var(--muted);max-width:56ch}
+  .state .act{margin-top:16px}
+  .sk{border:2px solid var(--ink);padding:14px;box-shadow:6px 6px 0 #00000014}
+  .sk i{display:block;height:12px;background:#e8e2cf;margin-bottom:8px}
+  @keyframes sh{to{background-position:-220% 0}}
+
+  .more{display:none;margin-top:24px}
+  .more.show{display:block}
+  .b3{
+    border:2px solid var(--ink);background:var(--yellow);color:var(--ink);
+    font:700 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;padding:12px 20px;
+    box-shadow:4px 4px 0 var(--ink);
+  }
+  .b3:hover{transform:translate(-1px,-1px);box-shadow:6px 6px 0 var(--ink)}
+
+  /* ---------- footer / toast ---------- */
+  .foot{border-top:3px solid var(--ink);margin-top:44px;padding:16px 0 0;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font:11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  #toast{
+    position:fixed;left:22px;bottom:22px;z-index:40;
+    background:var(--ink);color:var(--yellow);border:2px solid var(--ink);
+    box-shadow:5px 5px 0 #ffd83d55;
+    font:700 11.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;
+    padding:11px 15px;max-width:min(520px,calc(100vw - 44px));
+    opacity:0;transform:translateY(8px);transition:opacity .14s,transform .14s;pointer-events:none;
+  }
+  #toast.show{opacity:1;transform:translateY(0)}
+
+  @media (max-width:860px){
+    .page{padding:0 16px 60px}
+    .strip{padding:6px 16px;font-size:10px}
+    .strip .r{display:none}
+    .grid{grid-template-columns:1fr;gap:22px}
+    .finder .field{flex-basis:100%}
+    .finder .go{width:100%;justify-content:center;padding:14px}
+    .mast{padding-top:24px}
+    .card{box-shadow:4px 4px 0 var(--ink)}
+    .card[data-tone="expired"]{box-shadow:4px 4px 0 var(--danger)}
+    .r .k{flex-basis:78px;font-size:9.5px}
+  }
+</style>
+</head>
+<body>
+
+<div class="strip">
+  <span><b>INTERNAL</b> &nbsp;·&nbsp; ทะเบียนบัญชี VPN &nbsp;·&nbsp; ฝ่ายไอที</span>
+  <span class="tpl" aria-label="สลับแม่แบบ"><a href="index.html">CONSOLE</a><a class="on" href="template-poster.html" aria-current="page">POSTER</a><a href="template-registry.html">REGISTRY</a></span>
+  <span class="r">ห้ามเผยแพร่ภายนอกองค์กร · REV.03</span>
+</div>
+
+<div class="page">
+  <header class="mast">
+    <div>
+      <h1>ทะเบียน<span>บัญชี VPN</span></h1>
+      <p>ค้นด้วยรหัสพนักงานหรือชื่อ · ข้อมูลบัญชี เบอร์ติดต่อ และวันหมดอายุ</p>
+    </div>
+    <div class="num">ทั้งหมด <span id="totalNum">00</span> รายการ</div>
+  </header>
+
+  <form class="finder" id="searchForm" role="search" autocomplete="off">
+    <div class="field">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/><path d="M20 20l-3.6-3.6" stroke="currentColor" stroke-width="2.2"/></svg>
+      <label for="searchKey" style="position:absolute;left:-9999px">ค้นหารหัสพนักงานหรือชื่อ</label>
+      <input id="searchKey" type="search" placeholder="รหัสพนักงาน / ชื่อ-นามสกุล" aria-label="ค้นหารหัสพนักงานหรือชื่อ">
+    </div>
+    <button type="submit" class="go" id="searchBtn">ค้นหา <span aria-hidden="true">⏎</span></button>
+  </form>
+
+  <div class="find-note">
+    <span>ENTER เพื่อค้น · กด <kbd>/</kbd> เพื่อโฟกัสช่องค้นหา</span>
+    <span>คลิกที่ค่าใด ๆ เพื่อคัดลอก</span>
+  </div>
+
+  <div class="bar">
+    <h2>ผลการค้น</h2>
+    <p id="statusBox" role="status" aria-live="polite">ยังไม่ได้ค้นหา</p>
+  </div>
+
+  <div class="grid" id="resultBox"></div>
+  <div class="more" id="loadMoreWrap"></div>
+
+  <footer class="foot">
+    <span>ทะเบียนใช้ภายในฝ่ายเทคโนโลยีสารสนเทศ</span>
+    <span>สนับสนุนงานโดย Antonial 7769</span>
+  </footer>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/avatar.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxMqht7LawyLd6pesWRdGFnMwP6eYXfSeklj2wtDkFTqLZxzzdkxg-iNomzR3LXonEKUg/exec';
+  var PAGE = 10;
+  var MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  var EYE = '<svg viewBox="0 0 24 24" fill="none"><path d="M2.6 12S6 6.2 12 6.2 21.4 12 21.4 12 18 17.8 12 17.8 2.6 12 2.6 12z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>';
+  var EYE_OFF = '<svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M9.6 6.1A9.5 9.5 0 0112 5.9c6 0 9.4 5.8 9.4 5.8a16 16 0 01-2.7 3.3M6.2 7.5A16 16 0 002.6 11.7s3.4 5.8 9.4 5.8c1 0 2-.2 2.9-.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var dom = { form: $('searchForm'), input: $('searchKey'), btn: $('searchBtn'), status: $('statusBox'), results: $('resultBox'), more: $('loadMoreWrap'), toast: $('toast'), total: $('totalNum') };
+
+  var state = { all: [], shown: PAGE, keyword: '', requestId: 0 };
+  var revealed = {};
+
+  function art(seed) { return typeof avatarSvg === 'function' ? avatarSvg(seed) : ''; }
+
+  function tplLinks(keyword) {
+    var links = document.querySelectorAll('.tpl a');
+    for (var i = 0; i < links.length; i++) {
+      var href = links[i].getAttribute('data-href') || links[i].getAttribute('href');
+      links[i].setAttribute('data-href', href);
+      links[i].setAttribute('href', href + (keyword ? '?keyword=' + encodeURIComponent(keyword) : ''));
+    }
+  }
+
+  function esc(v) {
+    return String(v === null || v === undefined ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function pick(o, keys, fb) {
+    for (var i = 0; i < keys.length; i++) {
+      var v = o[keys[i]];
+      if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+    }
+    return fb === undefined ? '' : fb;
+  }
+  function parseDate(str) {
+    if (!str) return null;
+    var s = String(str).trim(), m;
+    m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+    if (m) { var y = +m[3]; if (y > 2400) y -= 543; return new Date(y, +m[2] - 1, +m[1]); }
+    var d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function daysLeft(str) {
+    var d = parseDate(str);
+    if (!d) return null;
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    var x = new Date(d.getTime()); x.setHours(0, 0, 0, 0);
+    return Math.round((x - t) / 86400000);
+  }
+  function toneOf(str) {
+    var n = daysLeft(str);
+    if (n === null) return 'unknown';
+    if (n < 0) return 'expired';
+    if (n <= 30) return 'warn';
+    return 'ok';
+  }
+  function dateLabel(str) {
+    var d = parseDate(str);
+    if (!d) return '—';
+    return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + (d.getFullYear() + 543);
+  }
+  function word(n) {
+    if (n === null) return 'ไม่ระบุ';
+    if (n < 0) return 'หมดอายุ ' + Math.abs(n) + ' วัน';
+    if (n === 0) return 'หมดอายุวันนี้';
+    return 'เหลือ ' + n + ' วัน';
+  }
+  function tagWord(t) {
+    return t === 'expired' ? 'หมดอายุ' : t === 'warn' ? 'ใกล้หมด' : t === 'ok' ? 'ใช้งานได้' : 'ไม่ระบุ';
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    dom.toast.textContent = msg;
+    dom.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { dom.toast.classList.remove('show'); }, 2400);
+  }
+  function copy(text, label) {
+    var value = String(text === null || text === undefined ? '' : text);
+    if (!value || value === '—') return;
+    var done = function () { toast('COPY · ' + (label || '') + ' ✓'); };
+    var legacy = function () {
+      var ta = document.createElement('textarea');
+      ta.value = value; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      ok ? done() : toast('COPY FAILED');
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(value).then(done).catch(legacy);
+    } else { legacy(); }
+  }
+
+  function cardHtml(info, index) {
+    var id = pick(info, ['id', 'empId'], '');
+    var name = pick(info, ['name', 'firstName'], '');
+    var surname = pick(info, ['surname', 'lastName'], '');
+    var dept = pick(info, ['dept', 'department'], '');
+    var phone = pick(info, ['phone', 'tel'], '');
+    var user = pick(info, ['user', 'username'], '');
+    var pass = pick(info, ['pass', 'password'], '');
+    var expire = pick(info, ['expire', 'expired', 'expiry'], '');
+    var xlite = pick(info, ['xlite', 'xLite', 'voip'], '');
+    var server = pick(info, ['server', 'svr'], '');
+    var full = (name + ' ' + surname).trim() || '—';
+    var tone = toneOf(expire);
+    var n = daysLeft(expire);
+    var subClass = tone === 'expired' ? 'danger' : tone === 'warn' ? 'warn' : '';
+
+    return '<article class="card" data-tone="' + tone + '">' +
+      '<div class="card-head">' +
+        '<div class="who">' +
+          '<span class="av">' + art(id || full) + '</span>' +
+          (id ? '<span class="id">' + esc(id) + '</span>' : '') +
+          '<button class="nm" data-copy="' + esc(full) + '" data-label="ชื่อ">' + esc(full) + '</button>' +
+        '</div>' +
+        '<span class="tag" data-tone="' + tone + '">' + esc(tagWord(tone)) + '</span>' +
+      '</div>' +
+
+      '<div class="card-body">' +
+        '<div class="rows">' +
+          '<div class="r"><span class="k">แผนก</span><span class="v mute" style="cursor:default">' + esc(dept || '—') + '</span></div>' +
+          '<div class="r"><span class="k">เบอร์โทร</span>' +
+            (phone
+              ? '<button class="v" data-copy="' + esc(phone) + '" data-label="เบอร์โทร">' + esc(phone) + '</button>'
+              : '<span class="v mute" style="cursor:default">ไม่มีเบอร์</span>') +
+          '</div>' +
+          '<div class="r"><span class="k">บัญชี</span>' +
+            '<button class="v" data-copy="' + esc(user) + '" data-label="บัญชี">' + esc(user || '—') + '</button></div>' +
+          '<div class="r"><span class="k">รหัสผ่าน</span>' +
+            (pass
+              ? '<button class="v pw" data-copy="' + esc(pass) + '" data-label="รหัสผ่าน" data-secret="' + esc(pass) + '" data-masked="1">••••••</button>' +
+                '<button class="eye" data-reveal="' + index + '" aria-label="แสดง / ซ่อนรหัสผ่าน">' + EYE + '</button>'
+              : '<span class="v mute" style="cursor:default">—</span>') +
+          '</div>' +
+          '<div class="r"><span class="k">หมดอายุ</span>' +
+            '<button class="v" data-copy="' + esc(expire) + '" data-label="วันหมดอายุ">' + esc(dateLabel(expire)) + '</button>' +
+            '<span class="sub ' + subClass + '">' + esc(word(n)) + '</span></div>' +
+          '<div class="r"><span class="k">VoIP</span>' +
+            '<button class="v" data-copy="' + esc(xlite) + '" data-label="X-Lite">' + esc(xlite || '—') + '</button>' +
+            '<span class="sub">' + (server ? 'svr ' + esc(server) : '') + '</span></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card-foot">' +
+        '<button class="b1" data-copy-card="' + index + '">คัดลอกทั้งหมด</button>' +
+        '<button class="b2" data-copy="' + esc(pass) + '" data-label="รหัสผ่าน">รหัสผ่าน</button>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function showState(title, text, action) {
+    dom.results.innerHTML = '<div class="state"><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p>' +
+      (action ? '<div class="act">' + action + '</div>' : '') + '</div>';
+    dom.more.innerHTML = '';
+    dom.more.classList.remove('show');
+  }
+
+  function render() {
+    var visible = state.all.slice(0, state.shown);
+    dom.results.innerHTML = visible.map(cardHtml).join('');
+    dom.total.textContent = state.all.length < 10 ? '0' + state.all.length : String(state.all.length);
+
+    if (state.shown < state.all.length) {
+      dom.more.innerHTML = '<button class="b3" id="loadMoreBtn">โหลดเพิ่ม · อีก ' + (state.all.length - state.shown) + ' รายการ</button>';
+      dom.more.classList.add('show');
+    } else {
+      dom.more.innerHTML = '';
+      dom.more.classList.remove('show');
+    }
+
+    dom.status.textContent = 'พบ ' + state.all.length + ' รายการ' + (visible.length < state.all.length ? ' · แสดง ' + visible.length : '');
+    dom.status.setAttribute('data-tone', 'ok');
+  }
+
+  function search() {
+    var kw = dom.input.value.trim();
+    if (!kw) {
+      dom.status.textContent = 'กรอกรหัสหรือชื่อก่อนค้นหา';
+      dom.status.setAttribute('data-tone', 'warn');
+      dom.input.focus();
+      return;
+    }
+    state.keyword = kw;
+    tplLinks(kw);
+    state.all = [];
+    state.shown = PAGE;
+    revealed = {};
+    var rid = ++state.requestId;
+
+    dom.btn.disabled = true;
+    dom.status.textContent = 'กำลังค้น…';
+    dom.status.removeAttribute('data-tone');
+    dom.more.innerHTML = '';
+    dom.more.classList.remove('show');
+    dom.results.innerHTML = '<div class="sk"><i style="width:70%"></i><i style="width:45%"></i><i style="width:60%"></i></div>' +
+      '<div class="sk"><i style="width:65%"></i><i style="width:50%"></i><i style="width:70%"></i></div>';
+
+    fetch(SCRIPT_URL + '?action=search&keyword=' + encodeURIComponent(kw), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        if (rid !== state.requestId) return;
+        var list = data && data.results ? data.results : [];
+        if (!Array.isArray(list)) list = [];
+        dom.btn.disabled = false;
+        state.all = list;
+        if (!list.length) {
+          dom.total.textContent = '00';
+          dom.status.textContent = 'ไม่พบข้อมูล';
+          dom.status.setAttribute('data-tone', 'warn');
+          showState('ไม่พบ “' + kw + '”', 'ลองสะกดรหัสพนักงานหรือชื่อให้สั้นลง แล้วค้นอีกครั้ง');
+          return;
+        }
+        render();
+      })
+      .catch(function (err) {
+        if (rid !== state.requestId) return;
+        dom.btn.disabled = false;
+        dom.status.textContent = 'เชื่อมต่อไม่สำเร็จ';
+        dom.status.setAttribute('data-tone', 'error');
+        showState('เชื่อมต่อฐานข้อมูลไม่สำเร็จ', err && err.message ? err.message : String(err),
+          '<button class="b3" id="retryBtn">ลองอีกครั้ง</button>');
+      });
+  }
+
+  function copyAll(index) {
+    var info = state.all.slice(0, state.shown)[index] || state.all[index];
+    if (!info) return;
+    var name = pick(info, ['name', 'firstName'], '');
+    var surname = pick(info, ['surname', 'lastName'], '');
+    copy([
+      'รหัสพนักงาน: ' + pick(info, ['id', 'empId'], '—'),
+      'ชื่อ-นามสกุล: ' + ((name + ' ' + surname).trim() || '—'),
+      'แผนก: ' + pick(info, ['dept', 'department'], '—'),
+      'เบอร์โทร: ' + pick(info, ['phone', 'tel'], '—'),
+      'บัญชี: ' + pick(info, ['user', 'username'], '—'),
+      'รหัสผ่าน: ' + pick(info, ['pass', 'password'], '—'),
+      'หมดอายุ: ' + dateLabel(pick(info, ['expire', 'expired', 'expiry'], '')),
+      'X-Lite: ' + pick(info, ['xlite', 'xLite', 'voip'], '—'),
+      'Server: ' + pick(info, ['server', 'svr'], '—')
+    ].join('\n'), 'ข้อมูลทั้งรายการ');
+  }
+
+  dom.form.addEventListener('submit', function (e) { e.preventDefault(); search(); });
+
+  dom.results.addEventListener('click', function (e) {
+    var eye = e.target.closest('[data-reveal]');
+    if (eye) {
+      var card = eye.closest('.card');
+      var pw = card ? card.querySelector('[data-secret]') : null;
+      if (pw) {
+        var masked = pw.getAttribute('data-masked') === '1';
+        pw.textContent = masked ? pw.getAttribute('data-secret') : '••••••';
+        pw.setAttribute('data-masked', masked ? '0' : '1');
+        eye.innerHTML = masked ? EYE_OFF : EYE;
+      }
+      return;
+    }
+    var all = e.target.closest('[data-copy-card]');
+    if (all) { copyAll(parseInt(all.getAttribute('data-copy-card'), 10)); return; }
+    if (e.target.closest('#retryBtn')) { search(); return; }
+    var hit = e.target.closest('[data-copy]');
+    if (hit) { copy(hit.getAttribute('data-copy'), hit.getAttribute('data-label')); }
+  });
+
+  dom.more.addEventListener('click', function (e) {
+    if (!e.target.closest('#loadMoreBtn')) return;
+    state.shown += PAGE;
+    render();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = (e.target.tagName || '').toLowerCase();
+    if (t === 'input' || t === 'textarea') return;
+    e.preventDefault();
+    dom.input.focus();
+  });
+
+  var startKeyword = (new URLSearchParams(location.search).get('keyword') || '').trim();
+  if (startKeyword) {
+    dom.input.value = startKeyword;
+    tplLinks(startKeyword);
+    search();
+  }
+})();
+</script>
+</body>
+</html>
