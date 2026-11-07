@@ -339,7 +339,7 @@
     var expire = pick(info, ['expire', 'expired', 'expiry'], '');
     var xlite = pick(info, ['xlite', 'xLite', 'voip'], '');
     var server = pick(info, ['server', 'svr'], '');
-    var full = (name + ' ' + surname).trim() || '—';
+    var full = (name + ' ' + surname).trim() || user || '—';
     var tone = toneOf(expire);
     var n = daysLeft(expire);
     var subClass = tone === 'expired' ? 'danger' : tone === 'warn' ? 'warn' : '';
@@ -467,7 +467,7 @@
     var surname = pick(info, ['surname', 'lastName'], '');
     copy([
       'รหัสพนักงาน: ' + pick(info, ['id', 'empId'], '—'),
-      'ชื่อ-นามสกุล: ' + ((name + ' ' + surname).trim() || '—'),
+      'ชื่อ-นามสกุล: ' + ((name + ' ' + surname).trim() || pick(info, ['user', 'username'], '—') || '—'),
       'แผนก: ' + pick(info, ['dept', 'department'], '—'),
       'เบอร์โทร: ' + pick(info, ['phone', 'tel'], '—'),
       'บัญชี: ' + pick(info, ['user', 'username'], '—'),

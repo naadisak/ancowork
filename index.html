@@ -379,7 +379,7 @@
       var f = fields(info);
       var tone = toneOf(f.expire);
       var n = daysLeft(f.expire);
-      var full = (f.name + ' ' + f.surname).trim() || '—';
+      var full = (f.name + ' ' + f.surname).trim() || f.user || '—';
       return '<button type="button" class="row" data-pick="' + i + '" data-tone="' + tone + '"' +
         (state.selected === i ? ' aria-current="true"' : '') + '>' +
         '<span class="av">' + art(f.id || full) + '<i class="led"></i></span>' +
@@ -398,7 +398,7 @@
     var f = fields(info);
     var tone = toneOf(f.expire);
     var n = daysLeft(f.expire);
-    var full = (f.name + ' ' + f.surname).trim() || '—';
+    var full = (f.name + ' ' + f.surname).trim() || f.user || '—';
     var pct = n === null ? 0 : Math.max(0, Math.min(100, Math.round((n / 365) * 100)));
 
     return '<div class="d-head">' +
